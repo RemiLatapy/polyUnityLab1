@@ -5,6 +5,7 @@ public class Platformer2DUserControl : MonoBehaviour
 {
 	private PlatformerCharacter2D character;
     private bool jump;
+	private bool m_JumpContinue;
 
 
 	void Awake()
@@ -17,6 +18,7 @@ public class Platformer2DUserControl : MonoBehaviour
         // Read the jump input in Update so button presses aren't missed.
 #if CROSS_PLATFORM_INPUT
         if (CrossPlatformInput.GetButtonDown("Jump")) jump = true;
+		m_JumpContinue = CrossPlatformInput.GetButton("Jump");
 #else
 		if (Input.GetButtonDown("Jump")) jump = true;
 #endif
@@ -35,6 +37,7 @@ public class Platformer2DUserControl : MonoBehaviour
 
 		// Pass all parameters to the character control script.
 		character.Move( h, crouch , jump );
+		character.Jump(m_JumpContinue);
 
         // Reset the jump input once it has been used.
 	    jump = false;

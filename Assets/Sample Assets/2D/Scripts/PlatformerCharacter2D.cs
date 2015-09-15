@@ -11,6 +11,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 	[SerializeField] float crouchSpeed = .36f;			// Amount of maxSpeed applied to crouching movement. 1 = 100%
 	[Range(0.8f, 1.5f)]
 	[SerializeField] float airSpeed = 1f;				// Amount of maxSpeed applied to jump movement.
+	[Range(0, 20)]
+	[SerializeField] float continueJumping = 10f;		// Amount of force added when the player held down jump
 
 	[SerializeField] bool airControl = false;			// Whether or not a player can steer while jumping;
 	[SerializeField] LayerMask whatIsGround;			// A mask determining what is ground to the character
@@ -89,6 +91,12 @@ public class PlatformerCharacter2D : MonoBehaviour
         }
 	}
 
+	public void Jump(bool continueJump)
+	{
+		if (continueJump)  {
+			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
+		}
+	}
 	
 	void Flip ()
 	{
