@@ -24,9 +24,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 	float ceilingRadius = .01f;							// Radius of the overlap circle to determine if the player can stand up
 	Animator anim;										// Reference to the player's animator component.
 
-	bool canMultiJump =false;
 	int nbJump=0;
-	[SerializeField] int nbJumpMax=3;
+	[SerializeField] int nbJumpMax=3;					// Maximum number of jumps that a player can do for a multi jump
 
     void Awake()
 	{
@@ -48,7 +47,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	}
 
 
-	public void Move(float move, bool crouch, bool jump)
+	public void Move(float move, bool crouch)
 	{
 		// If crouching, check to see if the character can stand up
 		if(!crouch && anim.GetBool("Crouch"))
@@ -75,40 +74,45 @@ public class PlatformerCharacter2D : MonoBehaviour
 			rigidbody2D.velocity = new Vector2(move * maxSpeed, rigidbody2D.velocity.y);
 			
 			// If the input is moving the player right and the player is facing left...
-			if(move > 0 && !facingRight)
+			if(move > 0 && !facingRight) {
 				// ... flip the player.
 				Flip();
+			}
 			// Otherwise if the input is moving the player left and the player is facing right...
-			else if(move < 0 && facingRight)
+			else if(move < 0 && facingRight) {
 				// ... flip the player.
 				Flip();
+			}
+		}
+	}
+
+	public void Jump(bool continueJump, bool firstJump)
+	{
+		// If the player should jump...
+		if(grounded && firstJump) {
+			Debug.Log ("First jump called");
+			// Add a vertical force to the player.
+			anim.SetBool("Ground", false);
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			nbJump++;
+		}
+		if (continueJump)  {
+			Debug.Log("Continue Jump Called");
+			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
 		}
 
-        // If the player should jump...
-         if (grounded && jump) {
-            // Add a vertical force to the player.
-            anim.SetBool("Ground", false);
-            rigidbody2D.AddForce(new Vector2(0f, jumpForce));
-			nbJump++;
-			//canMultiJump=true;
-        }
-
-		if (!grounded && jump && nbJump<nbJumpMax){// && canMultiJump) {
+		if (!grounded && firstJump && nbJump<nbJumpMax && nbJump>0){
+			Debug.Log ("Multi Jump, Grounded : " + grounded);
 			nbJump++;
 			Debug.Log("nbDeSaut : " + nbJump);
-			Debug.Log("CanMultiJump : " + canMultiJump);
 			// Add a vertical force to the player.
 			anim.SetBool("Ground", false);
 			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
 		}
 
-
-	}
-
-	public void Jump(bool continueJump)
-	{
-		if (continueJump)  {
-			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
+		if(nbJump == nbJumpMax) {
+			Debug.Log("NbJump Reseted");
+			nbJump=0;
 		}
 	}
 	
@@ -121,5 +125,10 @@ public class PlatformerCharacter2D : MonoBehaviour
 		Vector3 theScale = transform.localScale;
 		theScale.x *= -1;
 		transform.localScale = theScale;
+
+		// If player if jumping, reduce is speed
+		if (!grounded) {
+			rigidbody2D.AddForce (new Vector2 (-10f, 0f));
+		}
 	}
 }
