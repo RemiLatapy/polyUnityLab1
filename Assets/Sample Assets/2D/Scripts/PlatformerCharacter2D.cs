@@ -24,6 +24,9 @@ public class PlatformerCharacter2D : MonoBehaviour
 	float ceilingRadius = .01f;							// Radius of the overlap circle to determine if the player can stand up
 	Animator anim;										// Reference to the player's animator component.
 
+	bool canMultiJump =false;
+	int nbJump=0;
+	[SerializeField] int nbJumpMax=3;
 
     void Awake()
 	{
@@ -47,8 +50,6 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	public void Move(float move, bool crouch, bool jump)
 	{
-
-
 		// If crouching, check to see if the character can stand up
 		if(!crouch && anim.GetBool("Crouch"))
 		{
@@ -84,11 +85,24 @@ public class PlatformerCharacter2D : MonoBehaviour
 		}
 
         // If the player should jump...
-        if (grounded && jump) {
+         if (grounded && jump) {
             // Add a vertical force to the player.
             anim.SetBool("Ground", false);
             rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			nbJump++;
+			//canMultiJump=true;
         }
+
+		if (!grounded && jump && nbJump<nbJumpMax){// && canMultiJump) {
+			nbJump++;
+			Debug.Log("nbDeSaut : " + nbJump);
+			Debug.Log("CanMultiJump : " + canMultiJump);
+			// Add a vertical force to the player.
+			anim.SetBool("Ground", false);
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+		}
+
+
 	}
 
 	public void Jump(bool continueJump)
