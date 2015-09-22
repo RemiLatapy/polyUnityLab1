@@ -13,6 +13,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 	[SerializeField] float airSpeed = 1f;				// Amount of maxSpeed applied to jump movement.
 	[Range(0, 20)]
 	[SerializeField] float continueJumping = 10f;		// Amount of force added when the player held down jump
+	[SerializeField] float jumpWallHorizontal = 10000f;
+	float jumpWallHorizontalSigned;
 
 	[SerializeField] bool airControl = false;			// Whether or not a player can steer while jumping;
 	[SerializeField] LayerMask whatIsGround;			// A mask determining what is ground to the character
@@ -24,10 +26,11 @@ public class PlatformerCharacter2D : MonoBehaviour
 	Transform ceilingCheck;								// A position marking where to check for ceilings
 	float ceilingRadius = .01f;							// Radius of the overlap circle to determine if the player can stand up
 
-	Transform wallCheck;
-	Vector2 wallDiagArea = new Vector2(-0.4f, 0.5f);
+	Transform wallCheckFront;
+	Transform wallCheckBack;
+	Vector2 wallDiagArea = new Vector2(0.1f, 0.5f);
 
-	bool walled = false;
+	Walled walled = new Walled(false);
 
 	Animator anim;										// Reference to the player's animator component.
 
@@ -39,7 +42,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 		// Setting up references.
 		groundCheck = transform.Find("GroundCheck");
 		ceilingCheck = transform.Find("CeilingCheck");
-		wallCheck = transform.Find ("WallCheck");
+		wallCheckBack = transform.Find ("WallCheckBack");
+		wallCheckFront = transform.Find ("WallCheckFront");
 		anim = GetComponent<Animator>();
 	}
 
@@ -53,7 +57,9 @@ public class PlatformerCharacter2D : MonoBehaviour
 		// Set the vertical animation
 		anim.SetFloat("vSpeed", rigidbody2D.velocity.y);
 
-		walled = Physics2D.OverlapArea ((Vector2)groundCheck.position + wallDiagArea, (Vector2)groundCheck.position - wallDiagArea, whatIsWall);
+		walled.walledFront = Physics2D.OverlapArea ((Vector2)wallCheckFront.position + wallDiagArea, (Vector2)wallCheckFront.position - wallDiagArea, whatIsWall);
+		walled.walledBack = Physics2D.OverlapArea ((Vector2)wallCheckBack.position + wallDiagArea, (Vector2)wallCheckBack.position - wallDiagArea, whatIsWall);
+		walled.walled = walled.walledFront || walled.walledBack;
 	}
 
 
@@ -111,16 +117,17 @@ public class PlatformerCharacter2D : MonoBehaviour
 			return;
 		}
 
-		if ((!grounded && oneClickJump) && ((nbJump<nbJumpMax && nbJump>0) || walled)){
-			if(!walled) {
-				nbJump++;
-			}
+		if ((!grounded && oneClickJump) && ((nbJump<nbJumpMax && nbJump>0) || walled.walled)){
 			anim.SetBool("Ground", false);
-			if(walled) {
-				//TODO : add horizontal force && flip the player if needed (maybe need two WallCheck for each side)
+			if(!walled.walled) {
+				nbJump++;
 				rigidbody2D.AddForce(new Vector2(0f, jumpForce));
 			} else {
-				rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+				if(walled.walledFront) {
+					Flip();
+				}
+				jumpWallHorizontalSigned = facingRight ? jumpWallHorizontal : jumpWallHorizontal*-1;
+				rigidbody2D.AddForce(new Vector2(jumpWallHorizontalSigned, jumpForce));
 			}
 			return;
 		}
@@ -141,8 +148,20 @@ public class PlatformerCharacter2D : MonoBehaviour
 		transform.localScale = theScale;
 
 		// If player if jumping, reduce is speed
-		if (!grounded) {
+		if (!grounded && !walled.walled) {
 			rigidbody2D.AddForce (new Vector2 (-10f, 0f));
 		}
+	}
+}
+
+public struct Walled {
+	public bool walledBack;
+	public bool walledFront;
+	public bool walled;
+
+	public Walled(bool initialize) {
+		walledBack = initialize;
+		walledFront = initialize;
+		walled = initialize;
 	}
 }
