@@ -16,12 +16,19 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	[SerializeField] bool airControl = false;			// Whether or not a player can steer while jumping;
 	[SerializeField] LayerMask whatIsGround;			// A mask determining what is ground to the character
-	
+	[SerializeField] LayerMask whatIsWall;
+
 	Transform groundCheck;								// A position marking where to check if the player is grounded.
 	float groundedRadius = .2f;							// Radius of the overlap circle to determine if grounded
 	bool grounded = false;								// Whether or not the player is grounded.
 	Transform ceilingCheck;								// A position marking where to check for ceilings
 	float ceilingRadius = .01f;							// Radius of the overlap circle to determine if the player can stand up
+
+	Transform wallCheck;
+	Vector2 wallDiagArea = new Vector2(-0.4f, 0.5f);
+
+	bool walled = false;
+
 	Animator anim;										// Reference to the player's animator component.
 
 	int nbJump=0;
@@ -32,6 +39,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 		// Setting up references.
 		groundCheck = transform.Find("GroundCheck");
 		ceilingCheck = transform.Find("CeilingCheck");
+		wallCheck = transform.Find ("WallCheck");
 		anim = GetComponent<Animator>();
 	}
 
@@ -44,6 +52,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Set the vertical animation
 		anim.SetFloat("vSpeed", rigidbody2D.velocity.y);
+
+		walled = Physics2D.OverlapArea ((Vector2)groundCheck.position + wallDiagArea, (Vector2)groundCheck.position - wallDiagArea, whatIsWall);
 	}
 
 
@@ -86,32 +96,36 @@ public class PlatformerCharacter2D : MonoBehaviour
 		}
 	}
 
-	public void Jump(bool continueJump, bool firstJump)
+	public void Jump(bool continuousClickJump, bool oneClickJump)
 	{
 		// If the player should jump...
-		if(grounded && firstJump) {
-			Debug.Log ("First jump called");
+		if(grounded && oneClickJump) {
 			// Add a vertical force to the player.
 			anim.SetBool("Ground", false);
 			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
 			nbJump++;
+			return;
 		}
-		if (continueJump)  {
-			Debug.Log("Continue Jump Called");
+		if (continuousClickJump && !oneClickJump)  {
 			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
+			return;
 		}
 
-		if (!grounded && firstJump && nbJump<nbJumpMax && nbJump>0){
-			Debug.Log ("Multi Jump, Grounded : " + grounded);
-			nbJump++;
-			Debug.Log("nbDeSaut : " + nbJump);
-			// Add a vertical force to the player.
+		if ((!grounded && oneClickJump) && ((nbJump<nbJumpMax && nbJump>0) || walled)){
+			if(!walled) {
+				nbJump++;
+			}
 			anim.SetBool("Ground", false);
-			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			if(walled) {
+				//TODO : add horizontal force && flip the player if needed (maybe need two WallCheck for each side)
+				rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			} else {
+				rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			}
+			return;
 		}
 
-		if(nbJump == nbJumpMax) {
-			Debug.Log("NbJump Reseted");
+		if(nbJump == nbJumpMax || (nbJump != 0 && grounded)) {
 			nbJump=0;
 		}
 	}
