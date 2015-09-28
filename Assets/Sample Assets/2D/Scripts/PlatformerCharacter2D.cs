@@ -37,6 +37,9 @@ public class PlatformerCharacter2D : MonoBehaviour
 	int nbJump=0;
 	[SerializeField] int nbJumpMax=3;					// Maximum number of jumps that a player can do for a multi jump
 
+	[SerializeField] float jetpackForce = 5f;			// Amount of force added when the player jumps.
+	bool jetpackActive = false ;
+
     void Awake()
 	{
 		// Setting up references.
@@ -60,9 +63,16 @@ public class PlatformerCharacter2D : MonoBehaviour
 		walled.walledFront = Physics2D.OverlapArea ((Vector2)wallCheckFront.position + wallDiagArea, (Vector2)wallCheckFront.position - wallDiagArea, whatIsWall);
 		walled.walledBack = Physics2D.OverlapArea ((Vector2)wallCheckBack.position + wallDiagArea, (Vector2)wallCheckBack.position - wallDiagArea, whatIsWall);
 		walled.walled = walled.walledFront || walled.walledBack;
+
+		// JetPack
+		//rigidbody2D.velocity = Vector2.ClampMagnitude(rigidbody2D.velocity, maxSpeed);
+		jetpackActive = Input.GetButton ("Jump");
+		if (jetpackActive && !grounded && nbJump == 3) {
+			rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, jetpackForce);
+		}
 	}
-
-
+	
+	
 	public void Move(float move, bool crouch)
 	{
 		// If crouching, check to see if the character can stand up
@@ -133,9 +143,10 @@ public class PlatformerCharacter2D : MonoBehaviour
 		}
 
 		if(nbJump == nbJumpMax || (nbJump != 0 && grounded)) {
-			nbJump=0;
+			nbJump = 0;
 		}
 	}
+
 	
 	void Flip ()
 	{
