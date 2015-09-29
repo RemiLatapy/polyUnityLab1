@@ -36,8 +36,14 @@ public class PlatformerCharacter2D : MonoBehaviour
 	int nbJump=0;
 	[SerializeField] int nbJumpMax=3;					// Maximum number of jumps that a player can do for a multi jump
 
-	[SerializeField] float jetpackForce = 5f;			// Amount of force added when the player jumps.
-	bool jetpackActive = false ;
+	[Range(0, 5)]
+	[SerializeField] float jetpackForce = 3f;			// Amount of force added when the player uses the jetpack.
+	public bool jetpackActive_ ;
+
+	float heightMax = 0;
+	bool first = true ;
+
+	private Transform camera;
 
     void Awake()
 	{
@@ -47,6 +53,24 @@ public class PlatformerCharacter2D : MonoBehaviour
 		wallCheckBack = transform.Find ("WallCheckBack");
 		wallCheckFront = transform.Find ("WallCheckFront");
 		anim = GetComponent<Animator>();
+		camera = GameObject.FindGameObjectWithTag("MainCamera").transform;
+	}
+	float position = 0;
+
+	void Update()
+	{
+
+		if (grounded) 
+		{
+			position = transform.position.y ;
+		}
+		if (!first) 
+		{
+			Debug.DrawLine (new Vector2 (transform.position.x - 100, position + heightMax), new Vector2 (transform.position.x + 100, position + heightMax), Color.red);
+		}
+		if(jetpackActive_ || grounded)
+			camera.SendMessage("updateVerticalPosition");
+		//else camera.SendMessage("updateHorizontalPosition",camera.position.y);
 	}
 
 	void FixedUpdate()
@@ -59,11 +83,12 @@ public class PlatformerCharacter2D : MonoBehaviour
 		anim.SetFloat("vSpeed", rigidbody2D.velocity.y);
 
 		walled.Set(Physics2D.OverlapArea ((Vector2)wallCheckBack.position + wallDiagArea, (Vector2)wallCheckBack.position - wallDiagArea, whatIsWall), Physics2D.OverlapArea ((Vector2)wallCheckFront.position + wallDiagArea, (Vector2)wallCheckFront.position - wallDiagArea, whatIsWall));
+	}
 
-		// JetPack
-		//rigidbody2D.velocity = Vector2.ClampMagnitude(rigidbody2D.velocity, maxSpeed);
-		jetpackActive = Input.GetButton ("Jump");
-		if (jetpackActive && !grounded && nbJump == nbJumpMax) {
+	public void Jetpack(bool jetpackActive)
+	{
+		if (jetpackActive && !grounded && (nbJump == nbJumpMax)) {
+			jetpackActive_ = jetpackActive;
 			rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, jetpackForce);
 		}
 	}
@@ -127,6 +152,18 @@ public class PlatformerCharacter2D : MonoBehaviour
 		if (continuousClickJump && !oneClickJump)  {
 			//Debug.Log("Continuous jump");
 			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
+			if(first)
+			{
+				Debug.Log ("H = " + heightMax + " P = " + transform.position.y);
+				if(heightMax<transform.position.y)
+				{
+					heightMax = transform.position.y;
+				}
+				first=false;
+				heightMax+=rigidbody2D.renderer.bounds.size.y+0.5f;
+				Debug.Log ("H = " + heightMax);
+			}
+
 			return;
 		}
 
@@ -160,7 +197,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Reset counter
 		if(nbJump != 0 && grounded) {		
-			Debug.Log("Reset counter");
+			//Debug.Log("Reset counter");
+			jetpackActive_ = false;
 			nbJump = 0;
 		}
 	}

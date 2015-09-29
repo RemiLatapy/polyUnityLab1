@@ -39,6 +39,7 @@ public class Platformer2DUserControl : MonoBehaviour
 		// Pass all parameters to the character control script.
 		character.Move( h, crouch);
 		character.Jump(m_JumpContinue, jump);
+		character.Jetpack (m_JumpContinue);
 
         // Reset the jump input once it has been used.
 	    jump = false;
