@@ -13,8 +13,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	[SerializeField] float airSpeed = 1f;				// Amount of maxSpeed applied to jump movement.
 	[Range(0, 20)]
 	[SerializeField] float continueJumping = 10f;		// Amount of force added when the player held down jump
-	[SerializeField] float jumpWallHorizontal = 10000f;
-	float jumpWallHorizontalSigned;
+	[SerializeField] float jumpWallHorizontal = 5f;
 
 	[SerializeField] bool airControl = false;			// Whether or not a player can steer while jumping;
 	[SerializeField] LayerMask whatIsGround;			// A mask determining what is ground to the character
@@ -50,7 +49,6 @@ public class PlatformerCharacter2D : MonoBehaviour
 		anim = GetComponent<Animator>();
 	}
 
-
 	void FixedUpdate()
 	{
 		// The player is grounded if a circlecast to the groundcheck position hits anything designated as ground
@@ -60,14 +58,12 @@ public class PlatformerCharacter2D : MonoBehaviour
 		// Set the vertical animation
 		anim.SetFloat("vSpeed", rigidbody2D.velocity.y);
 
-		walled.walledFront = Physics2D.OverlapArea ((Vector2)wallCheckFront.position + wallDiagArea, (Vector2)wallCheckFront.position - wallDiagArea, whatIsWall);
-		walled.walledBack = Physics2D.OverlapArea ((Vector2)wallCheckBack.position + wallDiagArea, (Vector2)wallCheckBack.position - wallDiagArea, whatIsWall);
-		walled.walled = walled.walledFront || walled.walledBack;
+		walled.Set(Physics2D.OverlapArea ((Vector2)wallCheckBack.position + wallDiagArea, (Vector2)wallCheckBack.position - wallDiagArea, whatIsWall), Physics2D.OverlapArea ((Vector2)wallCheckFront.position + wallDiagArea, (Vector2)wallCheckFront.position - wallDiagArea, whatIsWall));
 
 		// JetPack
 		//rigidbody2D.velocity = Vector2.ClampMagnitude(rigidbody2D.velocity, maxSpeed);
 		jetpackActive = Input.GetButton ("Jump");
-		if (jetpackActive && !grounded && nbJump == 3) {
+		if (jetpackActive && !grounded && nbJump == nbJumpMax) {
 			rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, jetpackForce);
 		}
 	}
@@ -93,11 +89,15 @@ public class PlatformerCharacter2D : MonoBehaviour
 			move = ((grounded && crouch) ? move * crouchSpeed : move);
 			move = ((!grounded && airControl) ? move * airSpeed : move);
 
-			// The Speed animator parameter is set to the absolute value of the horizontal input.
-			anim.SetFloat("Speed", Mathf.Abs(move));
+			if(grounded) {
+				// The Speed animator parameter is set to the absolute value of the horizontal input.
+				anim.SetFloat("Speed", Mathf.Abs(move));
+			}
 
-			// Move the character
-			rigidbody2D.velocity = new Vector2(move * maxSpeed, rigidbody2D.velocity.y);
+			if(grounded || (airControl && move != 0)) {
+				// Move the character
+				rigidbody2D.velocity = new Vector2(move * maxSpeed, rigidbody2D.velocity.y);
+			}
 			
 			// If the input is moving the player right and the player is facing left...
 			if(move > 0 && !facingRight) {
@@ -114,35 +114,49 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	public void Jump(bool continuousClickJump, bool oneClickJump)
 	{
-		// If the player should jump...
+		// First normal jump
 		if(grounded && oneClickJump) {
+			//Debug.Log("First normal jump");
 			// Add a vertical force to the player.
 			anim.SetBool("Ground", false);
 			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
 			nbJump++;
 			return;
 		}
+
+		// Continuous jump
 		if (continuousClickJump && !oneClickJump)  {
+			//Debug.Log("Continuous jump");
 			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
 			return;
 		}
 
-		if ((!grounded && oneClickJump) && ((nbJump<nbJumpMax && nbJump>0) || walled.walled)){
-			anim.SetBool("Ground", false);
-			if(!walled.walled) {
-				nbJump++;
-				rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+		// Multiple jump
+		if (!grounded && !walled.walled && oneClickJump && nbJump<nbJumpMax) {
+			//Debug.Log("Multiple jump");
+			nbJump++;
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			return;
+		}
+
+		// Wall jump
+		if (!grounded && oneClickJump && walled.walled) {
+			//Debug.Log("Wall jump");
+			if(walled.walledFront) {
+				Flip();
+			}
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce/2));
+			if(facingRight) {
+				rigidbody2D.velocity = new Vector2(jumpWallHorizontal, rigidbody2D.velocity.y);
 			} else {
-				if(walled.walledFront) {
-					Flip();
-				}
-				jumpWallHorizontalSigned = facingRight ? jumpWallHorizontal : jumpWallHorizontal*-1;
-				rigidbody2D.AddForce(new Vector2(jumpWallHorizontalSigned, jumpForce));
+				rigidbody2D.velocity = new Vector2(-jumpWallHorizontal, rigidbody2D.velocity.y);
 			}
 			return;
 		}
 
-		if(nbJump == nbJumpMax || (nbJump != 0 && grounded)) {
+		// Reset counter
+		if(nbJump != 0 && grounded) {		
+			//Debug.Log("Reset counter");
 			nbJump = 0;
 		}
 	}
@@ -157,11 +171,6 @@ public class PlatformerCharacter2D : MonoBehaviour
 		Vector3 theScale = transform.localScale;
 		theScale.x *= -1;
 		transform.localScale = theScale;
-
-		// If player if jumping, reduce is speed
-		if (!grounded && !walled.walled) {
-			rigidbody2D.AddForce (new Vector2 (-10f, 0f));
-		}
 	}
 }
 
@@ -174,5 +183,11 @@ public struct Walled {
 		walledBack = initialize;
 		walledFront = initialize;
 		walled = initialize;
+	}
+
+	public void Set(bool p_walledBack, bool p_walledFront) {
+		walledBack = p_walledBack;
+		walledFront = p_walledFront;
+		walled = p_walledBack || p_walledFront;
 	}
 }
