@@ -73,7 +73,6 @@ NavMeshSettings:
     minRegionArea: 2
     widthInaccuracy: 16.666666
     heightInaccuracy: 10
-    tileSizeHint: 0
   m_NavMesh: {fileID: 0}
 --- !u!1 &99858816
 GameObject:
@@ -3337,7 +3336,7 @@ MonoBehaviour:
   crouchSpeed: .5
   airSpeed: 1
   continueJumping: 10
-  jumpWallHorizontal: 10000
+  jumpWallHorizontal: 5
   airControl: 1
   whatIsGround:
     serializedVersion: 2
@@ -3346,6 +3345,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   nbJumpMax: 3
+  jetpackForce: 5
+  jetpackActive_: 0
 --- !u!61 &1334310177
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -4370,6 +4371,10 @@ Prefab:
     - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
       propertyPath: whatIsGround.m_Bits
       value: 4294964735
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: jumpForce
+      value: 800
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
