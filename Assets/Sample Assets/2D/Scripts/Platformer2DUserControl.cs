@@ -21,6 +21,7 @@ public class Platformer2DUserControl : MonoBehaviour
 		m_JumpContinue = CrossPlatformInput.GetButton("Jump");
 #else
 		if (Input.GetButtonDown("Jump")) jump = true;
+		m_JumpContinue = Input.GetButton("Jump");
 #endif
 
     }

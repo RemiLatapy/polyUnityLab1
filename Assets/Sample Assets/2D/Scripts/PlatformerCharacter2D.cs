@@ -4,13 +4,12 @@ public class PlatformerCharacter2D : MonoBehaviour
 {
 	bool facingRight = true;							// For determining which way the player is currently facing.
 
-	[SerializeField] float maxSpeed = 10f;				// The fastest the player can travel in the x axis.
+	[SerializeField] float maxSpeed = 10f;				// The fastest the player can travel in the x axis on ground.
+	[SerializeField] float airForce = 45f;				// Amount of force added when the player move in air.
 	[SerializeField] float jumpForce = 400f;			// Amount of force added when the player jumps.	
 
 	[Range(0, 1)]
 	[SerializeField] float crouchSpeed = .36f;			// Amount of maxSpeed applied to crouching movement. 1 = 100%
-	[Range(0.8f, 1.5f)]
-	[SerializeField] float airSpeed = 1f;				// Amount of maxSpeed applied to jump movement.
 	[Range(0, 20)]
 	[SerializeField] float continueJumping = 10f;		// Amount of force added when the player held down jump
 	[SerializeField] float jumpWallHorizontal = 5f;
@@ -28,6 +27,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	Transform wallCheckFront;
 	Transform wallCheckBack;
 	Vector2 wallDiagArea = new Vector2(0.1f, 0.5f);
+	bool ignoreJumpAfterWallJump = false;
 
 	Walled walled = new Walled(false);
 
@@ -85,38 +85,37 @@ public class PlatformerCharacter2D : MonoBehaviour
 		//only control the player if grounded or airControl is turned on
 		if(grounded || airControl)
 		{
-			// Reduce the speed if crouching or jumping by the multiplier
+			// Reduce the speed if crouching by the multiplier
 			move = ((grounded && crouch) ? move * crouchSpeed : move);
-			move = ((!grounded && airControl) ? move * airSpeed : move);
 
 			if(grounded) {
 				// The Speed animator parameter is set to the absolute value of the horizontal input.
 				anim.SetFloat("Speed", Mathf.Abs(move));
-			}
-
-			if(grounded || (airControl && move != 0)) {
 				// Move the character
 				rigidbody2D.velocity = new Vector2(move * maxSpeed, rigidbody2D.velocity.y);
+			} else if (airControl) {
+				AirMove(move);
 			}
-			
-			// If the input is moving the player right and the player is facing left...
-			if(move > 0 && !facingRight) {
-				// ... flip the player.
-				Flip();
-			}
-			// Otherwise if the input is moving the player left and the player is facing right...
-			else if(move < 0 && facingRight) {
-				// ... flip the player.
-				Flip();
+
+			if(!walled.walled || grounded) {
+				FlipOnMoving(move);
 			}
 		}
 	}
 
 	public void Jump(bool continuousClickJump, bool oneClickJump)
 	{
+		// Because of reset input when jump on wall
+		if(ignoreJumpAfterWallJump && continuousClickJump && oneClickJump) {
+			// TODO : too late
+			Debug.Log("escape");
+			ignoreJumpAfterWallJump = false;
+			return;
+		}
+
 		// First normal jump
 		if(grounded && oneClickJump) {
-			//Debug.Log("First normal jump");
+			Debug.Log("First normal jump");
 			// Add a vertical force to the player.
 			anim.SetBool("Ground", false);
 			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
@@ -133,19 +132,24 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Multiple jump
 		if (!grounded && !walled.walled && oneClickJump && nbJump<nbJumpMax) {
-			//Debug.Log("Multiple jump");
+			Debug.Log("Multiple jump");
 			nbJump++;
+			rigidbody2D.velocity = (new Vector2(rigidbody2D.velocity.x, 0f));
 			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
 			return;
 		}
 
 		// Wall jump
 		if (!grounded && oneClickJump && walled.walled) {
-			//Debug.Log("Wall jump");
+			// Reset input avoid undesirable moves
+			Input.ResetInputAxes();
+			ignoreJumpAfterWallJump = true;
+			Debug.Log("Wall jump");
 			if(walled.walledFront) {
 				Flip();
 			}
-			rigidbody2D.AddForce(new Vector2(0f, jumpForce/2));
+			rigidbody2D.velocity = (new Vector2(rigidbody2D.velocity.x, 0f));
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
 			if(facingRight) {
 				rigidbody2D.velocity = new Vector2(jumpWallHorizontal, rigidbody2D.velocity.y);
 			} else {
@@ -156,11 +160,23 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Reset counter
 		if(nbJump != 0 && grounded) {		
-			//Debug.Log("Reset counter");
+			Debug.Log("Reset counter");
 			nbJump = 0;
 		}
 	}
 
+	void FlipOnMoving(float move) {
+		// If the input is moving the player right and the player is facing left...
+		if(move > 0 && !facingRight) {
+			// ... flip the player.
+			Flip();
+		}
+		// Otherwise if the input is moving the player left and the player is facing right...
+		else if(move < 0 && facingRight) {
+			// ... flip the player.
+			Flip();
+		}
+	}
 	
 	void Flip ()
 	{
@@ -172,22 +188,35 @@ public class PlatformerCharacter2D : MonoBehaviour
 		theScale.x *= -1;
 		transform.localScale = theScale;
 	}
-}
 
-public struct Walled {
-	public bool walledBack;
-	public bool walledFront;
-	public bool walled;
+	void AirMove(float move) {
+		// stop moving when turning
+		if((move < 0 && facingRight) || (move > 0 && !facingRight)) {
+			Debug.Log("set 0 velocity x, move :" + move);
+			rigidbody2D.velocity = new Vector2(0, rigidbody2D.velocity.y);
+		}
 
-	public Walled(bool initialize) {
-		walledBack = initialize;
-		walledFront = initialize;
-		walled = initialize;
+		// Add x force if velocity x < maxSpeed
+		if (Mathf.Abs(rigidbody2D.velocity.x) < maxSpeed) {
+			rigidbody2D.AddForce (new Vector2 (move * airForce, 0f));
+		}
 	}
 
-	public void Set(bool p_walledBack, bool p_walledFront) {
-		walledBack = p_walledBack;
-		walledFront = p_walledFront;
-		walled = p_walledBack || p_walledFront;
+	public struct Walled {
+		public bool walledBack;
+		public bool walledFront;
+		public bool walled;
+
+		public Walled(bool initialize) {
+			walledBack = initialize;
+			walledFront = initialize;
+			walled = initialize;
+		}
+
+		public void Set(bool p_walledBack, bool p_walledFront) {
+			walledBack = p_walledBack;
+			walledFront = p_walledFront;
+			walled = p_walledBack || p_walledFront;
+		}
 	}
 }
