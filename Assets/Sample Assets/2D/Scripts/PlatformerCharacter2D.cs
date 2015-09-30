@@ -5,7 +5,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	bool facingRight = true;							// For determining which way the player is currently facing.
 
 	[SerializeField] float maxSpeed = 10f;				// The fastest the player can travel in the x axis.
-	[SerializeField] float jumpForce = 400f;			// Amount of force added when the player jumps.	
+	[SerializeField] float jumpForce = 20f;				// Amount of force added when the player jumps.	
 
 	[Range(0, 1)]
 	[SerializeField] float crouchSpeed = .36f;			// Amount of maxSpeed applied to crouching movement. 1 = 100%
@@ -38,10 +38,9 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	[Range(0, 5)]
 	[SerializeField] float jetpackForce = 3f;			// Amount of force added when the player uses the jetpack.
-	public bool jetpackActive_ ;
-
-	float heightMax = 0;
-	bool first = true ;
+	public bool jetpackActive_;
+	float positionGround = 0;
+	float positionCeiling = 0;
 
 	private Transform camera;
 
@@ -55,22 +54,13 @@ public class PlatformerCharacter2D : MonoBehaviour
 		anim = GetComponent<Animator>();
 		camera = GameObject.FindGameObjectWithTag("MainCamera").transform;
 	}
-	float position = 0;
+
 
 	void Update()
 	{
-
-		if (grounded) 
-		{
-			position = transform.position.y ;
-		}
-		if (!first) 
-		{
-			Debug.DrawLine (new Vector2 (transform.position.x - 100, position + heightMax), new Vector2 (transform.position.x + 100, position + heightMax), Color.red);
-		}
 		if(jetpackActive_ || grounded)
-			camera.SendMessage("updateVerticalPosition");
-		//else camera.SendMessage("updateHorizontalPosition",camera.position.y);
+			camera.SendMessage("updateAllPosition");
+		else camera.SendMessage("updateHorizontalPosition", camera.position.y);
 	}
 
 	void FixedUpdate()
@@ -81,8 +71,19 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Set the vertical animation
 		anim.SetFloat("vSpeed", rigidbody2D.velocity.y);
-
+	
 		walled.Set(Physics2D.OverlapArea ((Vector2)wallCheckBack.position + wallDiagArea, (Vector2)wallCheckBack.position - wallDiagArea, whatIsWall), Physics2D.OverlapArea ((Vector2)wallCheckFront.position + wallDiagArea, (Vector2)wallCheckFront.position - wallDiagArea, whatIsWall));
+
+		// Following the formula : h = v0²/(2*g)
+		float heightMax = (Mathf.Pow(jumpForce, 2)/(2 * Physics.gravity.magnitude * rigidbody2D.gravityScale)) ;
+		if (grounded) 
+		{
+			positionGround = groundCheck.position.y;
+			// Added 0,36 because the head is a little bit higher than the ceilingCheck
+			positionCeiling = ceilingCheck.position.y + 0.36f;
+		}
+		Debug.DrawLine (new Vector2 (transform.position.x - 100, positionGround + heightMax), new Vector2 (transform.position.x + 100, positionGround + heightMax), Color.red);
+		Debug.DrawLine (new Vector2 (transform.position.x - 100, positionCeiling + heightMax), new Vector2 (transform.position.x + 100, positionCeiling + heightMax), Color.green);
 	}
 
 	public void Jetpack(bool jetpackActive)
@@ -92,7 +93,6 @@ public class PlatformerCharacter2D : MonoBehaviour
 			rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, jetpackForce);
 		}
 	}
-	
 	
 	public void Move(float move, bool crouch)
 	{
@@ -141,30 +141,19 @@ public class PlatformerCharacter2D : MonoBehaviour
 	{
 		// First normal jump
 		if(grounded && oneClickJump) {
-			//Debug.Log("First normal jump");
-			// Add a vertical force to the player.
+			// Debug.Log("First normal jump");
 			anim.SetBool("Ground", false);
-			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			// Add a vertical force to the player.
+			// Use of impulse because all the force needs to be applied in one shot
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
 			nbJump++;
 			return;
 		}
 
 		// Continuous jump
 		if (continuousClickJump && !oneClickJump)  {
-			//Debug.Log("Continuous jump");
+			// Debug.Log("Continuous jump");
 			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
-			if(first)
-			{
-				Debug.Log ("H = " + heightMax + " P = " + transform.position.y);
-				if(heightMax<transform.position.y)
-				{
-					heightMax = transform.position.y;
-				}
-				first=false;
-				heightMax+=rigidbody2D.renderer.bounds.size.y+0.5f;
-				Debug.Log ("H = " + heightMax);
-			}
-
 			return;
 		}
 
@@ -172,7 +161,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 		if (!grounded && !walled.walled && oneClickJump && nbJump<nbJumpMax) {
 			//Debug.Log("Multiple jump");
 			nbJump++;
-			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			// Change of velocity instead of AddForce (with ForceMode2D.Impulse) because we don't want to take the previous velocity into account
+			rigidbody2D.velocity = new Vector2(0f, jumpForce);
 			return;
 		}
 
@@ -192,7 +182,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 		}
 
 		// Reset counter
-		if(nbJump != 0 && grounded) {		
+		if((nbJump != 0 || nbJump==nbJumpMax) && grounded) {		
 			//Debug.Log("Reset counter");
 			jetpackActive_ = false;
 			nbJump = 0;
