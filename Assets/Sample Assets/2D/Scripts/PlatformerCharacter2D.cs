@@ -3,14 +3,13 @@
 public class PlatformerCharacter2D : MonoBehaviour 
 {
 	bool facingRight = true;							// For determining which way the player is currently facing.
-
+	
 	[SerializeField] float maxSpeed = 10f;				// The fastest the player can travel in the x axis.
+	[SerializeField] float airForce = 45f;				// Amount of force added when the player move in air.
 	[SerializeField] float jumpForce = 20f;				// Amount of force added when the player jumps.	
-
+	
 	[Range(0, 1)]
 	[SerializeField] float crouchSpeed = .36f;			// Amount of maxSpeed applied to crouching movement. 1 = 100%
-	[Range(0.8f, 1.5f)]
-	[SerializeField] float airSpeed = 1f;				// Amount of maxSpeed applied to jump movement.
 	[Range(0, 20)]
 	[SerializeField] float continueJumping = 10f;		// Amount of force added when the player held down jump
 	[SerializeField] float jumpWallHorizontal = 5f;
@@ -28,6 +27,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	Transform wallCheckFront;
 	Transform wallCheckBack;
 	Vector2 wallDiagArea = new Vector2(0.1f, 0.5f);
+	bool ignoreJumpAfterWallJump = false;
 
 	Walled walled = new Walled(false);
 
@@ -38,7 +38,9 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	[Range(0, 5)]
 	[SerializeField] float jetpackForce = 3f;			// Amount of force added when the player uses the jetpack.
-	public bool jetpackActive_;
+	bool jetpackActive_;								// bool that indicates if the character is using the jetpack
+	bool jump = false ;									// bool that indicates if the player is jumping
+
 	float positionGround = 0;
 	float positionCeiling = 0;
 
@@ -53,16 +55,35 @@ public class PlatformerCharacter2D : MonoBehaviour
 		wallCheckFront = transform.Find ("WallCheckFront");
 		anim = GetComponent<Animator>();
 		camera = GameObject.FindGameObjectWithTag("MainCamera").transform;
+		// When the game is started we want the camera to focus on the character
+		camera.SendMessage ("StartVertical");
 	}
-
 
 	void Update()
 	{
-		if(jetpackActive_ || grounded)
-			camera.SendMessage("updateAllPosition");
-		else camera.SendMessage("updateHorizontalPosition", camera.position.y);
+		if(jump)
+		{
+			Debug.Log ("StopVertical");
+			camera.SendMessage ("StopVertical");
+		}
+		// If the character uses the jetPack or if he's grounded and is walking (if we used grounded alone the camera follow the player
+		// vertically when he takes off (not when he's in the air but when he's about to jump)
+		else if(jetpackActive_  || (grounded && (Mathf.Abs(rigidbody2D.velocity.x) > 0)))
+		{
+			Debug.Log ("StartVertical");
+		     camera.SendMessage ("StartVertical");
+		}
+		// Comment this "else if" and the gap when the character takes off won't happen
+		// Whyyyyy ????????? 
+		// if the character doesn't move and is on the ground
+		else if(grounded && Mathf.Abs(rigidbody2D.velocity.x) == 0 && Mathf.Abs(rigidbody2D.velocity.y) == 0)
+		{
+			Debug.Log ("StartVertical");
+			camera.SendMessage ("StartVertical");
+		}
+		
 	}
-
+	
 	void FixedUpdate()
 	{
 		// The player is grounded if a circlecast to the groundcheck position hits anything designated as ground
@@ -76,7 +97,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Following the formula : h = v0²/(2*g)
 		float heightMax = (Mathf.Pow(jumpForce, 2)/(2 * Physics.gravity.magnitude * rigidbody2D.gravityScale)) ;
-		if (grounded) 
+		// We apply the condition grounded and if the velocity is null on y because the line where moving otherwise (when the character is taking off)
+		if (grounded && rigidbody2D.velocity.y == 0) 
 		{
 			positionGround = groundCheck.position.y;
 			// Added 0,36 because the head is a little bit higher than the ceilingCheck
@@ -89,6 +111,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	public void Jetpack(bool jetpackActive)
 	{
 		if (jetpackActive && !grounded && (nbJump == nbJumpMax)) {
+			jump = false ;
 			jetpackActive_ = jetpackActive;
 			rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, jetpackForce);
 		}
@@ -110,37 +133,38 @@ public class PlatformerCharacter2D : MonoBehaviour
 		//only control the player if grounded or airControl is turned on
 		if(grounded || airControl)
 		{
-			// Reduce the speed if crouching or jumping by the multiplier
+			// Reduce the speed if crouching by the multiplier
 			move = ((grounded && crouch) ? move * crouchSpeed : move);
-			move = ((!grounded && airControl) ? move * airSpeed : move);
 
 			if(grounded) {
 				// The Speed animator parameter is set to the absolute value of the horizontal input.
 				anim.SetFloat("Speed", Mathf.Abs(move));
-			}
-
-			if(grounded || (airControl && move != 0)) {
 				// Move the character
 				rigidbody2D.velocity = new Vector2(move * maxSpeed, rigidbody2D.velocity.y);
+			} else if (airControl) {
+				AirMove(move);
 			}
-			
-			// If the input is moving the player right and the player is facing left...
-			if(move > 0 && !facingRight) {
-				// ... flip the player.
-				Flip();
-			}
-			// Otherwise if the input is moving the player left and the player is facing right...
-			else if(move < 0 && facingRight) {
-				// ... flip the player.
-				Flip();
+
+			if(!walled.walled || grounded) {
+				FlipOnMoving(move);
 			}
 		}
 	}
 
 	public void Jump(bool continuousClickJump, bool oneClickJump)
 	{
+
+		// Because of reset input when jump on wall
+		if(ignoreJumpAfterWallJump && continuousClickJump && oneClickJump) {
+			// TODO : too late
+			Debug.Log("escape");
+			ignoreJumpAfterWallJump = false;
+			return;
+		}
+
 		// First normal jump
 		if(grounded && oneClickJump) {
+			jump = true;
 			// Debug.Log("First normal jump");
 			anim.SetBool("Ground", false);
 			// Add a vertical force to the player.
@@ -159,7 +183,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Multiple jump
 		if (!grounded && !walled.walled && oneClickJump && nbJump<nbJumpMax) {
-			//Debug.Log("Multiple jump");
+			Debug.Log("Multiple jump");
 			nbJump++;
 			// Change of velocity instead of AddForce (with ForceMode2D.Impulse) because we don't want to take the previous velocity into account
 			rigidbody2D.velocity = new Vector2(0f, jumpForce);
@@ -168,11 +192,15 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Wall jump
 		if (!grounded && oneClickJump && walled.walled) {
-			//Debug.Log("Wall jump");
+			// Reset input avoid undesirable moves
+			Input.ResetInputAxes();
+			ignoreJumpAfterWallJump = true;
+			Debug.Log("Wall jump");
 			if(walled.walledFront) {
 				Flip();
 			}
-			rigidbody2D.AddForce(new Vector2(0f, jumpForce/2));
+			rigidbody2D.velocity = (new Vector2(rigidbody2D.velocity.x, 0f));
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
 			if(facingRight) {
 				rigidbody2D.velocity = new Vector2(jumpWallHorizontal, rigidbody2D.velocity.y);
 			} else {
@@ -184,11 +212,24 @@ public class PlatformerCharacter2D : MonoBehaviour
 		// Reset counter
 		if((nbJump != 0 || nbJump==nbJumpMax) && grounded) {		
 			//Debug.Log("Reset counter");
+			jump = false;
 			jetpackActive_ = false;
 			nbJump = 0;
 		}
 	}
 
+	void FlipOnMoving(float move) {
+		// If the input is moving the player right and the player is facing left...
+		if(move > 0 && !facingRight) {
+			// ... flip the player.
+			Flip();
+		}
+		// Otherwise if the input is moving the player left and the player is facing right...
+		else if(move < 0 && facingRight) {
+			// ... flip the player.
+			Flip();
+		}
+	}
 	
 	void Flip ()
 	{
@@ -200,22 +241,35 @@ public class PlatformerCharacter2D : MonoBehaviour
 		theScale.x *= -1;
 		transform.localScale = theScale;
 	}
-}
 
-public struct Walled {
-	public bool walledBack;
-	public bool walledFront;
-	public bool walled;
+	void AirMove(float move) {
+		// stop moving when turning
+		if((move < 0 && facingRight) || (move > 0 && !facingRight)) {
+			Debug.Log("set 0 velocity x, move :" + move);
+			rigidbody2D.velocity = new Vector2(0, rigidbody2D.velocity.y);
+		}
 
-	public Walled(bool initialize) {
-		walledBack = initialize;
-		walledFront = initialize;
-		walled = initialize;
+		// Add x force if velocity x < maxSpeed
+		if (Mathf.Abs(rigidbody2D.velocity.x) < maxSpeed) {
+			rigidbody2D.AddForce (new Vector2 (move * airForce, 0f));
+		}
 	}
 
-	public void Set(bool p_walledBack, bool p_walledFront) {
-		walledBack = p_walledBack;
-		walledFront = p_walledFront;
-		walled = p_walledBack || p_walledFront;
+	public struct Walled {
+		public bool walledBack;
+		public bool walledFront;
+		public bool walled;
+
+		public Walled(bool initialize) {
+			walledBack = initialize;
+			walledFront = initialize;
+			walled = initialize;
+		}
+
+		public void Set(bool p_walledBack, bool p_walledFront) {
+			walledBack = p_walledBack;
+			walledFront = p_walledFront;
+			walled = p_walledBack || p_walledFront;
+		}
 	}
 }
