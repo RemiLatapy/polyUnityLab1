@@ -43,6 +43,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	float positionGround = 0;
 	float positionCeiling = 0;
+	float heightMaaax;
 
 	private Transform camera;
 
@@ -61,27 +62,23 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	void Update()
 	{
-		if(jump)
+		if (jump) 
 		{
 			Debug.Log ("StopVertical");
 			camera.SendMessage ("StopVertical");
+		} 
+		else 
+		{
+			camera.SendMessage ("StartVertical");
 		}
-		// If the character uses the jetPack or if he's grounded and is walking (if we used grounded alone the camera follow the player
-		// vertically when he takes off (not when he's in the air but when he's about to jump)
-		else if(jetpackActive_  || (grounded && (Mathf.Abs(rigidbody2D.velocity.x) > 0)))
+		/*
+		// If the character uses the jetPack or if he's grounded and is walking or if the character doesn't move and is on the groun
+		else if(jetpackActive_  || (grounded && (Mathf.Abs(rigidbody2D.velocity.x) > 0)) || grounded && Mathf.Abs(rigidbody2D.velocity.x) == 0 && Mathf.Abs(rigidbody2D.velocity.y) == 0)
 		{
 			Debug.Log ("StartVertical");
 		     camera.SendMessage ("StartVertical");
 		}
-		// Comment this "else if" and the gap when the character takes off won't happen
-		// Whyyyyy ????????? 
-		// if the character doesn't move and is on the ground
-		else if(grounded && Mathf.Abs(rigidbody2D.velocity.x) == 0 && Mathf.Abs(rigidbody2D.velocity.y) == 0)
-		{
-			Debug.Log ("StartVertical");
-			camera.SendMessage ("StartVertical");
-		}
-		
+		*/
 	}
 	
 	void FixedUpdate()
@@ -97,6 +94,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Following the formula : h = v0²/(2*g)
 		float heightMax = (Mathf.Pow(jumpForce, 2)/(2 * Physics.gravity.magnitude * rigidbody2D.gravityScale)) ;
+		heightMaaax = heightMax;
 		// We apply the condition grounded and if the velocity is null on y because the line where moving otherwise (when the character is taking off)
 		if (grounded && rigidbody2D.velocity.y == 0) 
 		{
@@ -177,6 +175,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 		// Continuous jump
 		if (continuousClickJump && !oneClickJump)  {
 			// Debug.Log("Continuous jump");
+			Debug.Log("Continuous jump   y=" + (transform.position.y+positionCeiling) + "    heightMax = " + (heightMaaax+positionCeiling));
 			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
 			return;
 		}
