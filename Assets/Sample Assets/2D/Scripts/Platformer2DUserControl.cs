@@ -6,7 +6,8 @@ public class Platformer2DUserControl : MonoBehaviour
 	private PlatformerCharacter2D character;
     private bool jump;
 	private bool m_JumpContinue;
-
+	private int numberFrameIgnore = -1;
+	private int counterFrame = 0;
 
 	void Awake()
 	{
@@ -19,9 +20,11 @@ public class Platformer2DUserControl : MonoBehaviour
 #if CROSS_PLATFORM_INPUT
         if (CrossPlatformInput.GetButtonDown("Jump")) jump = true;
 		m_JumpContinue = CrossPlatformInput.GetButton("Jump");
+//		if (CrossPlatformInput.GetButtonUp("Jump")) Debug.Log ("UP !!!!!");
 #else
 		if (Input.GetButtonDown("Jump")) jump = true;
 		m_JumpContinue = Input.GetButton("Jump");
+//		if (Input.GetButtonUp("Jump")) Debug.Log ("UP !!!!!");
 #endif
 
     }
@@ -37,11 +40,22 @@ public class Platformer2DUserControl : MonoBehaviour
 		#endif
 
 		// Pass all parameters to the character control script.
-		character.Move( h, crouch);
+		if (counterFrame > numberFrameIgnore) {
+			character.Move (h, crouch);
+		} else {
+			counterFrame++;
+		}
+
 		character.Jump(m_JumpContinue, jump);
 		character.Jetpack (m_JumpContinue);
 
         // Reset the jump input once it has been used.
 	    jump = false;
+	}
+
+	public void escapeMove (int numberFrames)
+	{
+		counterFrame = 0;
+		numberFrameIgnore = numberFrames;
 	}
 }

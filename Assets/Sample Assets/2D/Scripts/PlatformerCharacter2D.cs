@@ -32,6 +32,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	Walled walled = new Walled(false);
 
 	Animator anim;										// Reference to the player's animator component.
+	Platformer2DUserControl control;
 
 	int nbJump=0;
 	[SerializeField] int nbJumpMax=3;					// Maximum number of jumps that a player can do for a multi jump
@@ -55,6 +56,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 		wallCheckBack = transform.Find ("WallCheckBack");
 		wallCheckFront = transform.Find ("WallCheckFront");
 		anim = GetComponent<Animator>();
+		control = GetComponent<Platformer2DUserControl>();
 		camera = GameObject.FindGameObjectWithTag("MainCamera").transform;
 		// When the game is started we want the camera to focus on the character
 		camera.SendMessage ("StartVertical");
@@ -64,7 +66,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	{
 		if (jump) 
 		{
-			Debug.Log ("StopVertical");
+			//Debug.Log ("StopVertical");
 			camera.SendMessage ("StopVertical");
 		} 
 		else 
@@ -143,23 +145,14 @@ public class PlatformerCharacter2D : MonoBehaviour
 				AirMove(move);
 			}
 
-			if(!walled.walled || grounded) {
+			//if(!walled.walled || grounded) {
 				FlipOnMoving(move);
-			}
+			//}
 		}
 	}
 
 	public void Jump(bool continuousClickJump, bool oneClickJump)
 	{
-
-		// Because of reset input when jump on wall
-		if(ignoreJumpAfterWallJump && continuousClickJump && oneClickJump) {
-			// TODO : too late
-			Debug.Log("escape");
-			ignoreJumpAfterWallJump = false;
-			return;
-		}
-
 		// First normal jump
 		if(grounded && oneClickJump) {
 			jump = true;
@@ -175,31 +168,30 @@ public class PlatformerCharacter2D : MonoBehaviour
 		// Continuous jump
 		if (continuousClickJump && !oneClickJump)  {
 			// Debug.Log("Continuous jump");
-			Debug.Log("Continuous jump   y=" + (transform.position.y+positionCeiling) + "    heightMax = " + (heightMaaax+positionCeiling));
+			//Debug.Log("Continuous jump   y=" + (transform.position.y+positionCeiling) + "    heightMax = " + (heightMaaax+positionCeiling));
 			rigidbody2D.AddForce(new Vector2(0f, continueJumping));
 			return;
 		}
 
 		// Multiple jump
 		if (!grounded && !walled.walled && oneClickJump && nbJump<nbJumpMax) {
-			Debug.Log("Multiple jump");
+			//Debug.Log("Multiple jump");
 			nbJump++;
 			// Change of velocity instead of AddForce (with ForceMode2D.Impulse) because we don't want to take the previous velocity into account
-			rigidbody2D.velocity = new Vector2(0f, jumpForce);
+			rigidbody2D.velocity = new Vector2(rigidbody2D.velocity.x, jumpForce);
 			return;
 		}
 
 		// Wall jump
 		if (!grounded && oneClickJump && walled.walled) {
-			// Reset input avoid undesirable moves
-			Input.ResetInputAxes();
-			ignoreJumpAfterWallJump = true;
+			// Hardcore solution to avoid noisy move
+			control.escapeMove(20);
 			Debug.Log("Wall jump");
 			if(walled.walledFront) {
 				Flip();
 			}
 			rigidbody2D.velocity = (new Vector2(rigidbody2D.velocity.x, 0f));
-			rigidbody2D.AddForce(new Vector2(0f, jumpForce));
+			rigidbody2D.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
 			if(facingRight) {
 				rigidbody2D.velocity = new Vector2(jumpWallHorizontal, rigidbody2D.velocity.y);
 			} else {
