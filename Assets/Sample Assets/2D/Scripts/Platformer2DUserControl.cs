@@ -1,61 +1,50 @@
 ﻿using UnityEngine;
 
 [RequireComponent(typeof(PlatformerCharacter2D))]
-public class Platformer2DUserControl : MonoBehaviour 
+public class Platformer2DUserControl : MonoBehaviour
 {
 	private PlatformerCharacter2D character;
-    private bool jump;
-	private bool m_JumpContinue;
-	private int numberFrameIgnore = -1;
-	private int counterFrame = 0;
+	private bool oneJump;
+	private bool continuousJump;
 
-	void Awake()
+	void Awake ()
 	{
-		character = GetComponent<PlatformerCharacter2D>();
+		character = GetComponent<PlatformerCharacter2D> ();
 	}
 
-    void Update ()
-    {
-        // Read the jump input in Update so button presses aren't missed.
+	void Update ()
+	{
+		// Read the jump input in Update so button presses aren't missed.
 #if CROSS_PLATFORM_INPUT
-        if (CrossPlatformInput.GetButtonDown("Jump")) jump = true;
-		m_JumpContinue = CrossPlatformInput.GetButton("Jump");
+        if (CrossPlatformInput.GetButtonDown("Jump")) oneJump = true;
+		continuousJump = CrossPlatformInput.GetButton("Jump");
 //		if (CrossPlatformInput.GetButtonUp("Jump")) Debug.Log ("UP !!!!!");
 #else
-		if (Input.GetButtonDown("Jump")) jump = true;
-		m_JumpContinue = Input.GetButton("Jump");
+		if (Input.GetButtonDown ("Jump"))
+			jump = true;
+		m_JumpContinue = Input.GetButton ("Jump");
 //		if (Input.GetButtonUp("Jump")) Debug.Log ("UP !!!!!");
 #endif
 
-    }
+	}
 
-	void FixedUpdate()
+	void FixedUpdate ()
 	{
 		// Read the inputs.
-		bool crouch = Input.GetKey(KeyCode.LeftControl);
+		bool crouch = Input.GetKey (KeyCode.LeftControl);
 		#if CROSS_PLATFORM_INPUT
 		float h = CrossPlatformInput.GetAxis("Horizontal");
 		#else
-		float h = Input.GetAxis("Horizontal");
+		float h = Input.GetAxis ("Horizontal");
 		#endif
 
 		// Pass all parameters to the character control script.
-		if (counterFrame > numberFrameIgnore) {
-			character.Move (h, crouch);
-		} else {
-			counterFrame++;
-		}
+		character.Move (h, crouch);
 
-		character.Jump(m_JumpContinue, jump);
-		character.Jetpack (m_JumpContinue);
+		character.Jump (continuousJump, oneJump);
+		character.Jetpack (continuousJump);
 
-        // Reset the jump input once it has been used.
-	    jump = false;
-	}
-
-	public void escapeMove (int numberFrames)
-	{
-		counterFrame = 0;
-		numberFrameIgnore = numberFrames;
+		// Reset the jump input once it has been used.
+		oneJump = false;
 	}
 }
