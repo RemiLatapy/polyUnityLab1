@@ -108,8 +108,8 @@ public class PlatformerCharacter2D : MonoBehaviour
 	
 		walled.Set (Physics2D.OverlapArea ((Vector2)wallCheckBack.position + wallDiagArea, (Vector2)wallCheckBack.position - wallDiagArea, whatIsWall), Physics2D.OverlapArea ((Vector2)wallCheckFront.position + wallDiagArea, (Vector2)wallCheckFront.position - wallDiagArea, whatIsWall));
 
-		// Following the formula : h = v0²/(2*g)
-		float heightMax = (Mathf.Pow (jumpForce, 2) / (2 * Physics.gravity.magnitude * rigidbody2D.gravityScale));
+		// Following the formula : h = v0²/(2*g) with g the gravity less the acceleration of continuous jumping (N*m)
+		float heightMax = (Mathf.Pow (jumpForce, 2) / (2 * (Physics.gravity.magnitude * rigidbody2D.gravityScale - continueJumping * rigidbody2D.mass)));
 		heightMaaax = heightMax;
 		// We apply the condition grounded and if the velocity is null on y because the line where moving otherwise (when the character is taking off)
 		if (grounded && rigidbody2D.velocity.y == 0) {
@@ -150,20 +150,35 @@ public class PlatformerCharacter2D : MonoBehaviour
 			move = ((grounded && crouch) ? move * crouchSpeed : move);
 
 			if (grounded) {
-				// The Speed animator parameter is set to the absolute value of the horizontal input.
-				anim.SetFloat ("Speed", Mathf.Abs (move));
-				// Move the character
-				rigidbody2D.velocity = new Vector2 (move * maxSpeed, rigidbody2D.velocity.y);
-				FlipOnMoving (move);
+				GroundMove (move);
 			} else if (airControl) {
-				// If there is no skip, move
-				if (skipAirMoveCounter > skipAirMoveNumber) {
-					AirMove (move);
-					FlipOnMoving (move);
-				} else {
-					skipAirMoveCounter++;
-				}
+				AirMove (move);
 			}
+		}
+	}
+
+	void GroundMove (float move)
+	{
+		// The Speed animator parameter is set to the absolute value of the horizontal input.
+		anim.SetFloat ("Speed", Mathf.Abs (move));
+		// Move the character
+		rigidbody2D.velocity = new Vector2 (move * maxSpeed, rigidbody2D.velocity.y);
+		FlipOnMoving (move);
+	}
+
+	void AirMove (float move)
+	{
+		// If there is no skip, move
+		if (skipAirMoveCounter > skipAirMoveNumber + 3) {
+			SetAirMove (move);
+			FlipOnMoving (move);
+		} else
+			if (skipAirMoveCounter > skipAirMoveNumber) {
+			SetAirMove (move / (5 - (skipAirMoveCounter - skipAirMoveNumber)));
+			FlipOnMoving (move);
+			skipAirMoveCounter++;
+		} else {
+			skipAirMoveCounter++;
 		}
 	}
 
@@ -266,7 +281,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 		transform.localScale = theScale;
 	}
 
-	void AirMove (float move)
+	void SetAirMove (float move)
 	{
 		// stop moving when turning
 		if ((move < 0 && facingRight) || (move > 0 && !facingRight)) {
