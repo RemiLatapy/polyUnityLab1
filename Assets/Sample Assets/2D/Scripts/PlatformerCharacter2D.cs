@@ -188,7 +188,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 			return;
 		} else if (grounded && oneJump) {
 			SingleGroundJump ();
-		} else if (continuousJump && !oneJump) {
+		} else if (continuousJump && !oneJump && rigidbody2D.velocity.y > 0) {
 			ContinuousJump ();
 		} else if (!grounded && !walled.walled && oneJump && nbJump < nbJumpMax) {
 			MultipleAirJump ();
