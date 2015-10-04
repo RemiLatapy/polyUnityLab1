@@ -10,9 +10,10 @@ public class PlatformerCharacter2D : MonoBehaviour
 	[SerializeField]
 	float
 		airForce = 45f;				// Amount of force added when the player move in air.
+	[Range(10, 20)]
 	[SerializeField]
 	float
-		jumpForce = 20f;				// Amount of force added when the player jumps.	
+		jumpForce = 12f;				// Amount of force added when the player jumps.	
 	
 	[Range(0, 1)]
 	[SerializeField]
@@ -21,7 +22,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	[Range(0, 20)]
 	[SerializeField]
 	float
-		continueJumping = 10f;		// Amount of force added when the player held down jump
+		continueJumping = 15f;		// Amount of force added when the player held down jump
 	[SerializeField]
 	float
 		jumpWallHorizontal = 5f;
@@ -48,20 +49,20 @@ public class PlatformerCharacter2D : MonoBehaviour
 	Animator anim;										// Reference to the player's animator component.
 
 	int nbJump = 0;
+	[Range(2, 4)]
 	[SerializeField]
 	int
 		nbJumpMax = 3;					// Maximum number of jumps that a player can do for a multi jump
 
-	[Range(0, 5)]
+	[Range(3, 7)]
 	[SerializeField]
 	float
-		jetpackForce = 3f;			// Amount of force added when the player uses the jetpack.
+		jetpackForce = 4f;			// Amount of force added when the player uses the jetpack.
 	bool jetpackActive_;								// bool that indicates if the character is using the jetpack
 	bool jump = false ;									// bool that indicates if the player is jumping
 
 	float positionGround = 0;
 	float positionCeiling = 0;
-	float heightMaaax;
 	private int skipAirMoveNumber = -1;
 	private int skipAirMoveCounter = 0;
 	private Transform camera;
@@ -87,14 +88,6 @@ public class PlatformerCharacter2D : MonoBehaviour
 		} else {
 			camera.SendMessage ("StartVertical");
 		}
-		/*
-		// If the character uses the jetPack or if he's grounded and is walking or if the character doesn't move and is on the groun
-		else if(jetpackActive_  || (grounded && (Mathf.Abs(rigidbody2D.velocity.x) > 0)) || grounded && Mathf.Abs(rigidbody2D.velocity.x) == 0 && Mathf.Abs(rigidbody2D.velocity.y) == 0)
-		{
-			Debug.Log ("StartVertical");
-		     camera.SendMessage ("StartVertical");
-		}
-		*/
 	}
 	
 	void FixedUpdate ()
@@ -110,7 +103,6 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 		// Following the formula : h = v0²/(2*g) with g the gravity less the acceleration of continuous jumping (N*m)
 		float heightMax = (Mathf.Pow (jumpForce, 2) / (2 * (Physics.gravity.magnitude * rigidbody2D.gravityScale - continueJumping * rigidbody2D.mass)));
-		heightMaaax = heightMax;
 		// We apply the condition grounded and if the velocity is null on y because the line where moving otherwise (when the character is taking off)
 		if (grounded && rigidbody2D.velocity.y == 0) {
 			positionGround = groundCheck.position.y;
@@ -213,7 +205,6 @@ public class PlatformerCharacter2D : MonoBehaviour
 	void ContinuousJump ()
 	{
 		// Debug.Log("Continuous jump");
-		//Debug.Log("Continuous jump   y=" + (transform.position.y+positionCeiling) + "    heightMax = " + (heightMaaax+positionCeiling));
 		rigidbody2D.AddForce (new Vector2 (0f, continueJumping));
 	}
 
@@ -229,7 +220,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	{
 		// Hardcore solution to avoid noisy move input
 		SetSkipAirMove (15);
-		//			Debug.Log("Wall jump");
+		//	Debug.Log("Wall jump");
 		if (walled.walledFront) {
 			Flip ();
 		}
@@ -250,7 +241,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 
 	void ResetJumpVar ()
 	{
-		//Debug.Log("Reset counter");
+		// Debug.Log("Reset counter");
 		jump = false;
 		jetpackActive_ = false;
 		nbJump = 0;

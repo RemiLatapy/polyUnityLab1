@@ -73,7 +73,6 @@ NavMeshSettings:
     minRegionArea: 2
     widthInaccuracy: 16.666666
     heightInaccuracy: 10
-    tileSizeHint: 0
   m_NavMesh: {fileID: 0}
 --- !u!1 &99858816
 GameObject:
@@ -3366,9 +3365,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxSpeed: 10
   airForce: 45
-  jumpForce: 15
+  jumpForce: 12
   crouchSpeed: .360000014
-  continueJumping: 10
+  continueJumping: 15
   jumpWallHorizontal: 5
   airControl: 1
   whatIsGround:
@@ -3378,7 +3377,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   nbJumpMax: 3
-  jetpackForce: 3
+  jetpackForce: 4
 --- !u!61 &1334310177
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -4418,7 +4417,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
       propertyPath: jumpForce
-      value: 15
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
       propertyPath: m_Icon
@@ -4430,6 +4429,18 @@ Prefab:
       value: 
       objectReference: {fileID: 796366903, guid: 0000000000000000d000000000000000,
         type: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: nbJumpMax
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: jetpackForce
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: continueJumping
+      value: 15
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
   m_RootGameObject: {fileID: 1334310168}
