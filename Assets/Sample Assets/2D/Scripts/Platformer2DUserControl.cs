@@ -42,7 +42,8 @@ public class Platformer2DUserControl : MonoBehaviour
 		character.Move (h, crouch);
 
 		character.Jump (continuousJump, oneJump);
-		character.Jetpack (continuousJump);
+		character.JetpackActivation (oneJump);
+		character.JetpackMotor (continuousJump);
 
 		// Reset the jump input once it has been used.
 		oneJump = false;
