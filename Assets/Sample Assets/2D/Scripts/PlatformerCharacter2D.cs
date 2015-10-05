@@ -6,7 +6,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 	
 	[SerializeField]
 	float
-		maxSpeed = 10f;				// The fastest the player can travel in the x axis.
+		maxSpeed = 8f;				// The fastest the player can travel in the x axis.
 	[Range(0, 1)]
 	[SerializeField]
 	float
@@ -142,30 +142,10 @@ public class PlatformerCharacter2D : MonoBehaviour
 			// Added 0,36 because the head is a little bit higher than the ceilingCheck
 			positionCeiling = ceilingCheck.position.y + 0.36f;
 		}
-		Debug.DrawLine (new Vector2 (transform.position.x - 100, positionGround + heightMax), new Vector2 (transform.position.x + 100, positionGround + heightMax), Color.red);
-		Debug.DrawLine (new Vector2 (transform.position.x - 100, positionCeiling + heightMax), new Vector2 (transform.position.x + 100, positionCeiling + heightMax), Color.green);
+		Debug.DrawLine (new Vector2 (transform.position.x - 100, positionGround + heightMax), new Vector2 (transform.position.x + 100, positionGround + heightMax), Color.green);
+		Debug.DrawLine (new Vector2 (transform.position.x - 100, positionCeiling + heightMax), new Vector2 (transform.position.x + 100, positionCeiling + heightMax), Color.blue);
 	}
 
-	public void JetpackActivation (bool jetpackActivation) {
-		if (!jetpack) {
-			return;
-		}
-
-		if (jetpackActivation && !grounded && (nbJump == numberOfMultipleJump + 1)) {
-			jump = false;
-			jetpackActive_ = jetpackActivation;
-		}
-	}
-
-	public void JetpackMotor (bool jetpackMotor)
-	{
-		if (jetpackActive_ && jetpackMotor) {
-			rigidbody2D.velocity = new Vector2 (rigidbody2D.velocity.x, jetpackForce);
-		}
-	}
-
-
-	
 	public void Move (float move, bool crouch)
 	{
 		// If crouching, check to see if the character can stand up
@@ -224,10 +204,29 @@ public class PlatformerCharacter2D : MonoBehaviour
 		}
 		
 		// Add x force if velocity x < maxSpeed
-		if (Mathf.Abs (rigidbody2D.velocity.x) < maxSpeed) {
-			rigidbody2D.velocity = new Vector2 (rigidbody2D.velocity.x + move * maxSpeed * airMoveControlDegree, rigidbody2D.velocity.y);
-//			rigidbody2D.AddForce (new Vector2 (move * maxSpeed * airMoveDegree, 0f));
-//			rigidbody2D.velocity = new Vector2 (move * maxSpeed, rigidbody2D.velocity.y);
+		if (Mathf.Abs (rigidbody2D.velocity.x) < maxSpeed && Mathf.Abs (move * maxSpeed * airMoveControlDegree) > Mathf.Abs (rigidbody2D.velocity.x)) {
+//			rigidbody2D.velocity = new Vector2 (rigidbody2D.velocity.x + move * maxSpeed * airMoveControlDegree, rigidbody2D.velocity.y);
+//			rigidbody2D.AddForce (new Vector2 (move * maxSpeed, 0f));
+			rigidbody2D.velocity = new Vector2 (move * maxSpeed * airMoveControlDegree, rigidbody2D.velocity.y);
+			//			rigidbody2D.velocity = new Vector2 (move * maxSpeed, rigidbody2D.velocity.y);
+		}
+	}
+
+	public void JetpackActivation (bool jetpackActivation) {
+		if (!jetpack) {
+			return;
+		}
+		
+		if (jetpack && jetpackActivation && !grounded && (nbJump == numberOfMultipleJump)) {
+			jump = false;
+			jetpackActive_ = jetpackActivation;
+		}
+	}
+	
+	public void JetpackMotor (bool jetpackMotor)
+	{
+		if (jetpackActive_ && jetpackMotor) {
+			rigidbody2D.velocity = new Vector2 (rigidbody2D.velocity.x, jetpackForce);
 		}
 	}
 
@@ -239,7 +238,7 @@ public class PlatformerCharacter2D : MonoBehaviour
 			SingleGroundJump ();
 		} else if (continuousJump && !oneJump && rigidbody2D.velocity.y > 0) {
 			ContinuousJump ();
-		} else if (!grounded && !walled.walled && oneJump && nbJump <= numberOfMultipleJump) {
+		} else if (!grounded && !walled.walled && oneJump && nbJump < numberOfMultipleJump) {
 			MultipleAirJump ();
 		} else if (!grounded && oneJump && walled.walled) {
 			WallJump ();
@@ -262,7 +261,11 @@ public class PlatformerCharacter2D : MonoBehaviour
 	void ContinuousJump ()
 	{
 		// Debug.Log("Continuous jump");
-		rigidbody2D.AddForce (new Vector2 (0f, modularJump));
+		if (nbJump == 0) {
+			rigidbody2D.AddForce (new Vector2 (0f, modularJump));
+		} else {
+			rigidbody2D.AddForce (new Vector2 (0f, modularJump/2));
+		}
 	}
 
 	void MultipleAirJump ()

@@ -3364,15 +3364,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d08f91df3bd212f429df17f53ce2f364, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxSpeed: 10
+  maxSpeed: 8
   crouchSpeedMultiplier: .360000014
-  airMoveControlDegree: .200000003
-  jetpack: 1
+  airMoveControlDegree: .5
+  jetpack: 0
   jetpackForce: 4
   jumpForce: 12
-  modularJump: 15
+  modularJump: 9
   numberOfMultipleJump: 1
-  multipleJumpForceMultiplier: 1
+  multipleJumpForceMultiplier: .899999976
   wallJumpVerticalForceMultiplier: 1
   wallJumpHorizontalForce: 5
   whatIsGround:
@@ -4451,7 +4451,23 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
       propertyPath: airMoveControlDegree
-      value: .200000003
+      value: .5
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: modularJump
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: multipleJumpForceMultiplier
+      value: .899999976
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: jetpack
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 11400002, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
+      propertyPath: maxSpeed
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 87a2357765801c34292d6718d8b4d770, type: 2}
